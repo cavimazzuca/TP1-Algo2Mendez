@@ -12,6 +12,7 @@
 #define TEXTO_FANT "FANT"
 #define TEXTO_PSI "PSI"
 #define TEXTO_LUCH "LUCH"
+#define TEXTO_ERROR "????"
 #define ERROR -1
 
 struct tp1 {
@@ -235,6 +236,44 @@ size_t tp1_cantidad(tp1_t *tp1)
 	return tp1->cantidad;
 }
 
+const char* tipo_a_texto(int tipo)
+{
+	switch(tipo) {
+		case TIPO_ELEC:
+			return TEXTO_ELEC;
+		case TIPO_AGUA:
+			return TEXTO_AGUA;
+		case TIPO_FANT:
+			return TEXTO_FANT;
+		case TIPO_PSI:
+			return TEXTO_PSI;
+		case TIPO_FUEG:
+			return TEXTO_FUEG;
+		case TIPO_LUCH:
+			return TEXTO_LUCH;
+		case TIPO_NORM:
+			return TEXTO_NORM;
+		case TIPO_PLAN:
+			return TEXTO_PLAN;
+		default:
+			return TEXTO_ERROR;
+	}
+}
+
+tp1_t *tp1_guardar_archivo(tp1_t *tp1, const char *nombre)
+{
+	FILE* archivo = fopen(nombre, "w");
+	if (archivo == NULL)
+		return NULL;
+	for(size_t i = 0; i < tp1->cantidad; i++) {
+		fprintf(archivo, "%i,%s,%s,%i,%i,%i", tp1->pokemones[i].id, tp1->pokemones[i].nombre, tipo_a_texto(tp1->pokemones[i].tipo), tp1->pokemones[i].ataque, tp1->pokemones[i].defensa, tp1->pokemones[i].velocidad);
+		if ((i + 1) < tp1->cantidad)
+			fprintf(archivo, "\n");
+	}
+	fclose(archivo);
+	return tp1;
+}
+
 /*
  * Dado dos strings, devuelve true si el primero viene primero en el alfabeto.
  * Si no, devuele false.
@@ -262,4 +301,68 @@ void ordenar_pokemon(struct pokemon *pokemones, int cantidad_pokemones)
 			}
 		}
 	}
+}
+
+
+
+/*
+bool pokecmp(struct pokemon poke1, struct pokemon poke2)
+{
+	bool misma_id = poke1.id == poke2.id;
+	bool mismo_nombre = strcmp(poke1.nombre, poke2.nombre) == 0;
+	bool mismo_tipo = poke1.tipo == poke2.tipo;
+	bool mismo_ataque = poke1.ataque == poke2.ataque;
+	bool misma_defensa = poke1.defensa == poke2.defensa;
+	bool misma_velocidad = poke1.velocidad == poke2.velocidad;
+
+	bool mismas_stats = mismo_ataque && misma_defensa && misma_velocidad;
+	bool mismo_poke = mismo_nombre && mismo_tipo;
+
+	return misma_id  && mismo_poke && mismas_stats;
+}
+	*/
+
+
+tp1_t *tp1_copiar(tp1_t *tp1)
+{
+	if (tp1 == NULL)
+		return NULL;
+	tp1_t *tp1_copia = malloc(sizeof(struct tp1));
+	if (tp1_copia == NULL)
+		return NULL;
+	tp1_copia->pokemones = malloc(sizeof(struct pokemon) * tp1->cantidad);
+	if (tp1_copia->pokemones == NULL) {
+		free(tp1_copia);
+		return NULL;
+	}
+	size_t i = 0;
+	tp1_copia->cantidad = 0;
+	while (i < tp1->cantidad) {
+		char *nombre = tp1->pokemones[i].nombre;
+		tp1_copia->pokemones[i].nombre = malloc((strlen(nombre) + 1) * sizeof(char));
+		if (tp1_copia->pokemones[i].nombre == NULL) {
+			tp1_destruir(tp1_copia);
+			return NULL;
+		}
+		tp1_copia->cantidad++;
+		strcpy(tp1_copia->pokemones[i].nombre, nombre);
+		tp1_copia->pokemones[i].id = tp1_copia->pokemones[i].id;
+		tp1_copia->pokemones[i].tipo = tp1_copia->pokemones[i].tipo;
+		tp1_copia->pokemones[i].ataque = tp1_copia->pokemones[i].ataque;
+		tp1_copia->pokemones[i].defensa = tp1_copia->pokemones[i].defensa;
+		tp1_copia->pokemones[i].velocidad = tp1_copia->pokemones[i].velocidad;
+		i++;
+	}
+	return tp1_copia;
+}
+
+//hasta ahora: devuelve una copia de un_tp
+tp1_t *tp1_union(tp1_t *un_tp, tp1_t *otro_tp)
+{
+	if (un_tp == NULL || otro_tp == NULL)
+		return NULL;
+	tp1_t *tp1_union = tp1_copiar(un_tp);
+	if (tp1_union == NULL)
+		return NULL;
+	return tp1_union;
 }

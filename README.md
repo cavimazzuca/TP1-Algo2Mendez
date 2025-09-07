@@ -4,9 +4,7 @@
 
 # TDA LISTA
 
-# ESTO ES UN TEMPLATE, COMPLETAR LO QUE HAGA FALTA, ELIMINAR LO QUE SOBRE (INCLUIDA ESTA LÍNEA)
-
-## Alumno: (Nombre Apellido) - (Padrón) - (Mail)
+## Alumno: Ignacio J Cavieres Mazzuca - 112966 - icavieres@fi.uba.ar
 
 - Para compilar:
 
@@ -61,4 +59,7 @@ vector_original = vector;
 ---
 
 ## Respuestas a las preguntas teóricas
-Incluír acá las respuestas a las preguntas del enunciado (si aplica).
+ - Explicar la elección de la estructura para implementar la funcionalida dpedida. Justifique el uso de cada uno de los campos de la estructura.
+ - Explicar con diagramas cómo quedan dispuestas las estructuras y elementos en memoria.
+ - Justificar la complejidad computacional temporal de **cada una** de las funciones que se piden implementar.
+ - Explique qué dificultades tuvo para implementar las funcionalidades pedidas en el main (si tuvo alguna) y explique si alguna de estas dificultades se podría haber evitado modificando la definición del .h
