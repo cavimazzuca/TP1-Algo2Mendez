@@ -346,17 +346,59 @@ tp1_t *tp1_copiar(tp1_t *tp1)
 		}
 		tp1_copia->cantidad++;
 		strcpy(tp1_copia->pokemones[i].nombre, nombre);
-		tp1_copia->pokemones[i].id = tp1_copia->pokemones[i].id;
-		tp1_copia->pokemones[i].tipo = tp1_copia->pokemones[i].tipo;
-		tp1_copia->pokemones[i].ataque = tp1_copia->pokemones[i].ataque;
-		tp1_copia->pokemones[i].defensa = tp1_copia->pokemones[i].defensa;
-		tp1_copia->pokemones[i].velocidad = tp1_copia->pokemones[i].velocidad;
+		tp1_copia->pokemones[i].id = tp1->pokemones[i].id;
+		tp1_copia->pokemones[i].tipo = tp1->pokemones[i].tipo;
+		tp1_copia->pokemones[i].ataque = tp1->pokemones[i].ataque;
+		tp1_copia->pokemones[i].defensa = tp1->pokemones[i].defensa;
+		tp1_copia->pokemones[i].velocidad = tp1->pokemones[i].velocidad;
 		i++;
 	}
 	return tp1_copia;
 }
 
-//hasta ahora: devuelve una copia de un_tp
+//Copia la estructura de poke2 en poke1.
+struct pokemon *pokecpy(struct pokemon *poke1, struct pokemon *poke2)
+{
+	poke1->nombre = malloc((strlen(poke2->nombre) + 1) * sizeof(char));
+	if (poke1->nombre == NULL)
+		return NULL;
+	strcpy(poke1->nombre, poke2->nombre);
+	poke1->id = poke2->id;
+	poke1->tipo = poke2->tipo;
+	poke1->ataque = poke2->ataque;
+	poke1->defensa = poke2->defensa;
+	poke1->velocidad = poke2->velocidad;
+	return poke1;
+}
+
+//Añade todos los elementos de otro_tp a un_tp
+tp1_t *tp1_acoplar(tp1_t *un_tp, tp1_t *tp_acoplado)
+{
+	size_t cnt_uno = un_tp->cantidad;
+	size_t cnt_acoplado = tp_acoplado->cantidad;
+	size_t cnt_final = cnt_uno + cnt_acoplado;
+	struct pokemon *pokemones_un_tp = realloc(un_tp->pokemones, cnt_final * sizeof(struct pokemon));
+	if (pokemones_un_tp == NULL)
+		return NULL;
+	un_tp->pokemones = pokemones_un_tp;
+	for (size_t i = cnt_uno; i < cnt_final; i++) {
+		pokecpy(&un_tp->pokemones[i], &tp_acoplado->pokemones[i - cnt_uno]);
+		un_tp->cantidad++;
+	}
+	return un_tp;
+}
+
+void tp1_quitar_sobras(tp1_t *tp1)
+{
+	
+}
+
+/*
+
+
+!!!!!!!!!!! SIGUIENTE TAREA: CREAR tp1_quitar_sobras() !!!!!!!!!!!!!!!!!!!!!
+
+*/
 tp1_t *tp1_union(tp1_t *un_tp, tp1_t *otro_tp)
 {
 	if (un_tp == NULL || otro_tp == NULL)
@@ -364,5 +406,7 @@ tp1_t *tp1_union(tp1_t *un_tp, tp1_t *otro_tp)
 	tp1_t *tp1_union = tp1_copiar(un_tp);
 	if (tp1_union == NULL)
 		return NULL;
+	tp1_acoplar(tp1_union, otro_tp);
+	tp1_quitar_sobras(tp1_union);
 	return tp1_union;
 }
