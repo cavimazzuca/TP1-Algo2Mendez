@@ -63,6 +63,7 @@ char *leer_linea(FILE *archivo)
 	char *ultimo_char = &linea[strlen(linea) - 1];
 	if (*ultimo_char == '\n')
 		linea[strlen(linea) - 1] = '\0';
+	
 	return linea;
 }
 
@@ -142,6 +143,10 @@ struct pokemon *parsear_pokemon(char *linea)
 		return NULL;
 	pokemon->id = atoi(id);
 	pokemon->nombre = malloc(sizeof(char) * (strlen(nombre) + 1));
+	if (pokemon->nombre == NULL) {
+		free(pokemon);
+		return NULL;
+	}
 	strcpy(pokemon->nombre, nombre);
 	pokemon->tipo = tipo_num;
 	pokemon->ataque = atoi(ataque);
@@ -176,8 +181,7 @@ void añadir_tp1_dinamico(struct pokemon *pokemon, tp1_t *tp1)
 }
 
 /*
- * Devuelve un puntero a un tp1 sin pokemones.
- * Debe ser liberado usando tp1_destruir();
+ * Devuelve un puntero a un tp1 con memoria para un pokemon.
  */
 tp1_t *crear_tp1() {
 	tp1_t *tp1 = malloc(sizeof(struct tp1));
@@ -197,9 +201,17 @@ tp1_t *tp1_leer_archivo(const char *nombre) {
 	if (archivo == NULL) 
 		return NULL;
 	tp1_t *tp1 = crear_tp1();
-	if (tp1 == NULL)
+	if (tp1 == NULL) {
+		fclose(archivo);
 		return NULL;
+	}
+		
 	char *linea = leer_linea(archivo);
+	if (linea == NULL) {
+		fclose(archivo);
+		tp1_destruir(tp1);
+		return NULL;
+	}
 	while (linea != NULL) { 
 		struct pokemon *pokemon = parsear_pokemon(linea);
 		añadir_tp1_dinamico(pokemon, tp1);
@@ -371,6 +383,16 @@ struct pokemon *pokecpy(struct pokemon *poke1, struct pokemon *poke2)
 	return poke1;
 }
 
+bool id_existe(tp1_t *tp1, int id)
+{
+	bool existe = false;
+	for (int i = 0; i < tp1->cantidad; i++) {
+		if (tp1->pokemones[i].id == id)
+			existe = true;
+	}
+	return existe;
+}
+
 //Añade todos los elementos de otro_tp a un_tp
 tp1_t *tp1_acoplar(tp1_t *un_tp, tp1_t *tp_acoplado)
 {
@@ -382,16 +404,14 @@ tp1_t *tp1_acoplar(tp1_t *un_tp, tp1_t *tp_acoplado)
 		return NULL;
 	un_tp->pokemones = pokemones_un_tp;
 	for (size_t i = cnt_uno; i < cnt_final; i++) {
-		pokecpy(&un_tp->pokemones[i], &tp_acoplado->pokemones[i - cnt_uno]);
-		un_tp->cantidad++;
+		if (!id_existe(un_tp, tp_acoplado->pokemones[i - cnt_uno].id)) {
+			pokecpy(&un_tp->pokemones[i], &tp_acoplado->pokemones[i - cnt_uno]);
+			un_tp->cantidad++;
+		}
 	}
 	return un_tp;
 }
 
-void tp1_quitar_sobras(tp1_t *tp1)
-{
-	
-}
 
 /*
 
@@ -407,6 +427,5 @@ tp1_t *tp1_union(tp1_t *un_tp, tp1_t *otro_tp)
 	if (tp1_union == NULL)
 		return NULL;
 	tp1_acoplar(tp1_union, otro_tp);
-	tp1_quitar_sobras(tp1_union);
 	return tp1_union;
 }
