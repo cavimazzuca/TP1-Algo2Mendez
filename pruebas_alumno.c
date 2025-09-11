@@ -9,8 +9,57 @@
 #define ARCHIVO_STAT_INVALIDO "ejemplos/stat_invalida.csv"
 #define ARCHIVO_TIPO_INVALIDO "ejemplos/tipo_invalido.csv"
 #define ARCHIVO_LINEAS_VACIAS "ejemplos/lineas_vacias.csv"
+#define ARCHIVO_GUARDADO "ejemplos/guardado.csv"
+#define ARCHIVO_REPETIDOS "ejemplos/repetidos.csv"
 
+void tp1_poke_repetido_no_cuenta()
+{
+	tp1_t *tp1 = tp1_leer_archivo(ARCHIVO_REPETIDOS);
+	pa2m_afirmar(tp1_cantidad(tp1) == 2, "Ignora pokemones repetidos");
+	if (tp1 != NULL) {
+		tp1_destruir(tp1);
+	}
+}
 
+void tp1_guardar_tp_prueba_invalidos()
+{
+	tp1_t *tp1 = tp1_leer_archivo(ARCHIVO_STAT_INVALIDO);
+	tp1 = tp1_guardar_archivo(tp1, ARCHIVO_GUARDADO);
+	tp1_t *tp1_2 = tp1_leer_archivo(ARCHIVO_GUARDADO);
+	pa2m_afirmar(tp1_cantidad(tp1_2) == 4, "Guarda solo pokemones válidos");
+	if (tp1 != NULL) {
+		tp1_destruir(tp1);
+	}
+	if (tp1_2 != NULL) {
+		tp1_destruir(tp1_2);
+	}
+}
+
+void tp1_guardar_tp_prueba_cantidad()
+{
+	tp1_t *tp1 = tp1_leer_archivo(ARCHIVO_PRUEBA_NORMAL);
+	tp1 = tp1_guardar_archivo(tp1, ARCHIVO_GUARDADO);
+	tp1_t *tp1_2 = tp1_leer_archivo(ARCHIVO_GUARDADO);
+	pa2m_afirmar(tp1_cantidad(tp1_2) == 5, "La cantidad de pokemones es correcta");
+	if (tp1 != NULL) {
+		tp1_destruir(tp1);
+	}
+	if (tp1_2 != NULL) {
+		tp1_destruir(tp1_2);
+	}
+	
+}
+
+void tp1_guardar_tp_inexistente_devuelve_null()
+{
+	tp1_t *tp1 = tp1_leer_archivo(ARCHIVO_PRUEBA_INEXISTENTE);
+	tp1 = tp1_guardar_archivo(tp1, ARCHIVO_GUARDADO);
+	pa2m_afirmar(tp1 == NULL, "Guardar un tp NULL devuelve NULL");
+	if (tp1 != NULL) {
+		tp1_destruir(tp1);
+	}
+	
+}
 
 void tp1_poke_tipo_invalido_no_cuenta()
 {
@@ -94,6 +143,11 @@ int main()
 	tp1_lineas_vacias_no_cuentan();
 	tp1_poke_stat_invalido_no_cuenta();
 	tp1_poke_tipo_invalido_no_cuenta();
+	tp1_poke_repetido_no_cuenta();
+	pa2m_nuevo_grupo("Pruebas de guardado de archivos");
+	tp1_guardar_tp_inexistente_devuelve_null();
+	tp1_guardar_tp_prueba_cantidad();
+	tp1_guardar_tp_prueba_invalidos();
 
 	return pa2m_mostrar_reporte();
 }

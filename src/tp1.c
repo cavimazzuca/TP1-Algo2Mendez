@@ -164,7 +164,7 @@ struct pokemon *parsear_pokemon(char *linea)
 }
 
 /*
- * Añade el pokemon 'pokemon' al vector dinámico del tp1.
+ * Añade el pokemon 'pokemon' al vector dinámico 'pokemones' de tp1.
  * En caso de error, no hace nada.
  */
 void añadir_tp1_dinamico(struct pokemon *pokemon, tp1_t *tp1)
@@ -214,14 +214,17 @@ tp1_t *tp1_leer_archivo(const char *nombre) {
 	}
 	while (linea != NULL) { 
 		struct pokemon *pokemon = parsear_pokemon(linea);
-		añadir_tp1_dinamico(pokemon, tp1);
-		
 		free(linea);
-		if (pokemon != NULL)
+		if (pokemon != NULL) {
+			if (tp1_buscar_id(tp1, pokemon->id) == NULL) {
+				añadir_tp1_dinamico(pokemon, tp1);
+			} else {
+				free(pokemon->nombre);
+			}
 			free(pokemon);
+		}
 		linea = leer_linea(archivo);
 	}
-	free(linea);
 	fclose(archivo);
 	if (tp1->cantidad == 0) {
 		tp1_destruir(tp1);
@@ -274,6 +277,8 @@ const char* tipo_a_texto(int tipo)
 
 tp1_t *tp1_guardar_archivo(tp1_t *tp1, const char *nombre)
 {
+	if (tp1 == NULL)
+		return NULL;
 	FILE* archivo = fopen(nombre, "w");
 	if (archivo == NULL)
 		return NULL;
@@ -369,6 +374,7 @@ tp1_t *tp1_copiar(tp1_t *tp1)
 }
 
 //Copia la estructura de poke2 en poke1.
+// En caso de error devuelve NULL 
 struct pokemon *pokecpy(struct pokemon *poke1, struct pokemon *poke2)
 {
 	poke1->nombre = malloc((strlen(poke2->nombre) + 1) * sizeof(char));
@@ -383,16 +389,6 @@ struct pokemon *pokecpy(struct pokemon *poke1, struct pokemon *poke2)
 	return poke1;
 }
 
-bool id_existe(tp1_t *tp1, int id)
-{
-	bool existe = false;
-	for (int i = 0; i < tp1->cantidad; i++) {
-		if (tp1->pokemones[i].id == id)
-			existe = true;
-	}
-	return existe;
-}
-
 //Añade todos los elementos de otro_tp a un_tp
 tp1_t *tp1_acoplar(tp1_t *un_tp, tp1_t *tp_acoplado)
 {
@@ -404,7 +400,7 @@ tp1_t *tp1_acoplar(tp1_t *un_tp, tp1_t *tp_acoplado)
 		return NULL;
 	un_tp->pokemones = pokemones_un_tp;
 	for (size_t i = cnt_uno; i < cnt_final; i++) {
-		if (!id_existe(un_tp, tp_acoplado->pokemones[i - cnt_uno].id)) {
+		if (tp1_buscar_id(un_tp, tp_acoplado->pokemones[i - cnt_uno].id) == NULL) {
 			pokecpy(&un_tp->pokemones[i], &tp_acoplado->pokemones[i - cnt_uno]);
 			un_tp->cantidad++;
 		}
@@ -412,13 +408,77 @@ tp1_t *tp1_acoplar(tp1_t *un_tp, tp1_t *tp_acoplado)
 	return un_tp;
 }
 
+struct pokemon *tp1_buscar_id(tp1_t *tp, int id)
+{
+	int i = 0;
+	while(i < tp->cantidad) {
+		if (tp->pokemones[i].id == id) {
+			return &tp->pokemones[i];
+		}
+		i++;
+	}
+	return NULL;
+}
 
-/*
+struct pokemon *tp1_buscar_nombre(tp1_t *tp, const char *nombre)
+{
+	int i = 0;
+	while(i < tp->cantidad) {
+		if (strcmp(tp->pokemones[i].nombre,nombre) == 0) {
+			return &tp->pokemones[i];
+		}
+		i++;
+	}
+	return NULL;
+}
+
+//interseccion nula = NULL?
+tp1_t *tp1_interseccion(tp1_t *un_tp, tp1_t *otro_tp)
+{
+	if (un_tp == NULL || otro_tp == NULL)
+		return NULL;
+	tp1_t *tp1_interseccion = crear_tp1();
+	if (tp1_interseccion == NULL)
+		return NULL;
+	int i = 0;
+	int cantidad = 0;
+	
+	while(i < un_tp->cantidad) {
+		struct pokemon pokemon = un_tp->pokemones[i];
+		struct pokemon *poke_intersecado = tp1_buscar_id(otro_tp, pokemon.id);
+		struct pokemon *poke_nuevo = malloc(sizeof(struct pokemon));
+			if (poke_nuevo == NULL) {
+				tp1_destruir(tp1_interseccion);
+				return NULL;
+			}
+		if (poke_intersecado != NULL) {
+			struct pokemon *poke_tmp = pokecpy(poke_nuevo, poke_intersecado);
+			if (poke_tmp == NULL) {
+				tp1_destruir(tp1_interseccion);
+				free(poke_nuevo);
+				return NULL;
+			}
+			añadir_tp1_dinamico(poke_nuevo,tp1_interseccion);
+			cantidad++;
+			if (cantidad != tp1_interseccion->cantidad) {
+				tp1_destruir(tp1_interseccion);
+				return NULL;
+			}
+		}
+		free(poke_nuevo);
+		i++;
+	}
+	printf("asdasda\n");
+	if (tp1_interseccion->cantidad == 0) {
+		tp1_destruir(tp1_interseccion);
+		return NULL;
+	}
+	return tp1_interseccion;
+}
 
 
-!!!!!!!!!!! SIGUIENTE TAREA: CREAR tp1_quitar_sobras() !!!!!!!!!!!!!!!!!!!!!
 
-*/
+
 tp1_t *tp1_union(tp1_t *un_tp, tp1_t *otro_tp)
 {
 	if (un_tp == NULL || otro_tp == NULL)
@@ -429,3 +489,32 @@ tp1_t *tp1_union(tp1_t *un_tp, tp1_t *otro_tp)
 	tp1_acoplar(tp1_union, otro_tp);
 	return tp1_union;
 }
+
+tp1_t *tp1_diferencia(tp1_t *un_tp, tp1_t *otro_tp)
+{
+	int i = 0;
+	tp1_t *tp1_diferencia = crear_tp1();
+	while(i < un_tp->cantidad) {
+		if (tp1_buscar_id(otro_tp, un_tp->pokemones[i].id) == NULL) {
+			struct pokemon *pokemon = malloc(sizeof(struct pokemon));
+			if (pokemon == NULL)
+				return NULL;
+			pokemon = pokecpy(pokemon, &un_tp->pokemones[i]);
+			if (pokemon == NULL)
+				return NULL;
+			añadir_tp1_dinamico(pokemon, tp1_diferencia);
+			free(pokemon);
+		}
+		i++;
+	}
+	return tp1_diferencia;
+}
+
+/*
+!!!!!!!!!!! SIGUIENTE TAREA: CREAR tp1_interseccion() !!!!!!!!!!!!!!!!!!!!!
+	PREGUNTAS:
+
+	- ¿Si tp es vacío -> Siempre NULL?
+	- Ejemplo: Interseccion que da NULL, no guarda archivo -> deja lo anterior.
+	- ¿Guardar NULL -> Vaciar archivo???
+*/
