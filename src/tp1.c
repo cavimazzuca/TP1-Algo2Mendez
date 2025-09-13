@@ -35,6 +35,8 @@ char *salto_encontrado(char *linea)
 /*
  * Devuelve la línea actual del archivo.
  * Debe ser guardada y posteriormente liberada.
+ * Si la línea está vacía, devuelve NULL.
+ * En caso de error, también devuelve NULL.
  */
 char *leer_linea(FILE *archivo)
 {
@@ -196,6 +198,26 @@ tp1_t *crear_tp1() {
 	return tp1;
 }
 
+void ordenar_pokemon(struct pokemon *pokemones, size_t cantidad_pokemones)
+{
+	if (pokemones == NULL)
+		return;
+	for (size_t i = 0; i < cantidad_pokemones; i++) {
+		for (size_t j = 0; j < cantidad_pokemones - 1; j++) {
+			struct pokemon tmp;
+			int id = pokemones[j].id;
+			int sig_id = pokemones[j + 1].id;
+			if (id > sig_id) {
+				tmp = pokemones[j];
+				pokemones[j] = pokemones[j + 1];
+				pokemones[j + 1] = tmp;
+			}
+		}
+	}
+
+}
+
+
 tp1_t *tp1_leer_archivo(const char *nombre) {
 	FILE *archivo = fopen(nombre, "r");
 	if (archivo == NULL) 
@@ -209,8 +231,7 @@ tp1_t *tp1_leer_archivo(const char *nombre) {
 	char *linea = leer_linea(archivo);
 	if (linea == NULL) {
 		fclose(archivo);
-		tp1_destruir(tp1);
-		return NULL;
+		return tp1;
 	}
 	while (linea != NULL) { 
 		struct pokemon *pokemon = parsear_pokemon(linea);
@@ -226,10 +247,7 @@ tp1_t *tp1_leer_archivo(const char *nombre) {
 		linea = leer_linea(archivo);
 	}
 	fclose(archivo);
-	if (tp1->cantidad == 0) {
-		tp1_destruir(tp1);
-		return NULL;
-	}
+	ordenar_pokemon(tp1->pokemones, tp1->cantidad);
 	return tp1;
 }
 
@@ -291,69 +309,21 @@ tp1_t *tp1_guardar_archivo(tp1_t *tp1, const char *nombre)
 	return tp1;
 }
 
-/*
- * Dado dos strings, devuelve true si el primero viene primero en el alfabeto.
- * Si no, devuele false.
- */
-bool primero_en_alfabeto(char *primero, char *segundo)
-{
-	if (strcmp(primero, segundo) < 0)
-		return true;
-	return false;
-}
-
-void ordenar_pokemon(struct pokemon *pokemones, int cantidad_pokemones)
-{
-	if (pokemones == NULL)
-		return;
-	for (int i = 0; i < cantidad_pokemones; i++) {
-		for (int j = 0; j < cantidad_pokemones - 1; j++) {
-			struct pokemon tmp;
-			char *pokemon = pokemones[j].nombre;
-			char *sig_pokemon = pokemones[j + 1].nombre;
-			if (!primero_en_alfabeto(pokemon, sig_pokemon)) {
-				tmp = pokemones[j];
-				pokemones[j] = pokemones[j + 1];
-				pokemones[j + 1] = tmp;
-			}
-		}
-	}
-}
 
 
 
-/*
-bool pokecmp(struct pokemon poke1, struct pokemon poke2)
-{
-	bool misma_id = poke1.id == poke2.id;
-	bool mismo_nombre = strcmp(poke1.nombre, poke2.nombre) == 0;
-	bool mismo_tipo = poke1.tipo == poke2.tipo;
-	bool mismo_ataque = poke1.ataque == poke2.ataque;
-	bool misma_defensa = poke1.defensa == poke2.defensa;
-	bool misma_velocidad = poke1.velocidad == poke2.velocidad;
-
-	bool mismas_stats = mismo_ataque && misma_defensa && misma_velocidad;
-	bool mismo_poke = mismo_nombre && mismo_tipo;
-
-	return misma_id  && mismo_poke && mismas_stats;
-}
-	*/
 
 
 tp1_t *tp1_copiar(tp1_t *tp1)
 {
 	if (tp1 == NULL)
 		return NULL;
-	tp1_t *tp1_copia = malloc(sizeof(struct tp1));
-	if (tp1_copia == NULL)
-		return NULL;
-	tp1_copia->pokemones = malloc(sizeof(struct pokemon) * tp1->cantidad);
-	if (tp1_copia->pokemones == NULL) {
-		free(tp1_copia);
+	tp1_t *tp1_copia = crear_tp1();
+	if (tp1_copia == NULL) {
 		return NULL;
 	}
 	size_t i = 0;
-	tp1_copia->cantidad = 0;
+	
 	while (i < tp1->cantidad) {
 		char *nombre = tp1->pokemones[i].nombre;
 		tp1_copia->pokemones[i].nombre = malloc((strlen(nombre) + 1) * sizeof(char));
@@ -362,6 +332,7 @@ tp1_t *tp1_copiar(tp1_t *tp1)
 			return NULL;
 		}
 		tp1_copia->cantidad++;
+		
 		strcpy(tp1_copia->pokemones[i].nombre, nombre);
 		tp1_copia->pokemones[i].id = tp1->pokemones[i].id;
 		tp1_copia->pokemones[i].tipo = tp1->pokemones[i].tipo;
@@ -369,6 +340,12 @@ tp1_t *tp1_copiar(tp1_t *tp1)
 		tp1_copia->pokemones[i].defensa = tp1->pokemones[i].defensa;
 		tp1_copia->pokemones[i].velocidad = tp1->pokemones[i].velocidad;
 		i++;
+		struct pokemon *pokemones_tmp = realloc(tp1_copia->pokemones,sizeof(struct pokemon)*i+sizeof(struct pokemon));
+		if (pokemones_tmp == NULL) {
+			tp1_destruir(tp1_copia);
+			return NULL;
+		}
+		tp1_copia->pokemones = pokemones_tmp;
 	}
 	return tp1_copia;
 }
@@ -395,10 +372,12 @@ tp1_t *tp1_acoplar(tp1_t *un_tp, tp1_t *tp_acoplado)
 	size_t cnt_uno = un_tp->cantidad;
 	size_t cnt_acoplado = tp_acoplado->cantidad;
 	size_t cnt_final = cnt_uno + cnt_acoplado;
-	struct pokemon *pokemones_un_tp = realloc(un_tp->pokemones, cnt_final * sizeof(struct pokemon));
-	if (pokemones_un_tp == NULL)
-		return NULL;
-	un_tp->pokemones = pokemones_un_tp;
+	if (cnt_final > 0){
+		struct pokemon *pokemones_un_tp = realloc(un_tp->pokemones, cnt_final * sizeof(struct pokemon));
+		if (pokemones_un_tp == NULL)
+			return NULL;
+		un_tp->pokemones = pokemones_un_tp;
+	}
 	for (size_t i = cnt_uno; i < cnt_final; i++) {
 		if (tp1_buscar_id(un_tp, tp_acoplado->pokemones[i - cnt_uno].id) == NULL) {
 			pokecpy(&un_tp->pokemones[i], &tp_acoplado->pokemones[i - cnt_uno]);
@@ -468,11 +447,6 @@ tp1_t *tp1_interseccion(tp1_t *un_tp, tp1_t *otro_tp)
 		free(poke_nuevo);
 		i++;
 	}
-	printf("asdasda\n");
-	if (tp1_interseccion->cantidad == 0) {
-		tp1_destruir(tp1_interseccion);
-		return NULL;
-	}
 	return tp1_interseccion;
 }
 
@@ -510,11 +484,21 @@ tp1_t *tp1_diferencia(tp1_t *un_tp, tp1_t *otro_tp)
 	return tp1_diferencia;
 }
 
-/*
-!!!!!!!!!!! SIGUIENTE TAREA: CREAR tp1_interseccion() !!!!!!!!!!!!!!!!!!!!!
-	PREGUNTAS:
 
-	- ¿Si tp es vacío -> Siempre NULL?
-	- Ejemplo: Interseccion que da NULL, no guarda archivo -> deja lo anterior.
-	- ¿Guardar NULL -> Vaciar archivo???
-*/
+size_t tp1_con_cada_pokemon(tp1_t *un_tp, bool (*f)(struct pokemon *, void *), void *extra)
+{
+	size_t i = 0;
+	if (f == NULL)
+		return i;
+	if (un_tp == NULL)
+		return i;
+	ordenar_pokemon(un_tp->pokemones, un_tp->cantidad);
+	while (i < un_tp->cantidad) {
+		bool funcion = f(&un_tp->pokemones[i], extra);
+		if (!funcion)
+			return i;
+		i++;
+	}
+
+	return i;
+}
